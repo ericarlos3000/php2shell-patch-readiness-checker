@@ -1,0 +1,4 @@
+SiteName,URL
+LocalMockServer,http://localhost:8000
+ExampleWebDomainPT,https://example.pt
+ExampleWebDomain,http://example.com

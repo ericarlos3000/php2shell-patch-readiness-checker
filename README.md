@@ -4,30 +4,76 @@ A defensive PowerShell tool that screens a supplied PHP release against the offi
 
 ## What it does
 
-- Accepts a dotted PHP release such as `8.5.11`.
-- Selects the official patched baseline for PHP 8.2, 8.3, 8.4, or 8.5.
-- Returns `EXPOSED`, `PATCHED BASELINE MET`, or `REVIEW REQUIRED`.
-- Writes a Markdown assessment with remediation, limitations, and official sources.
+- **Dual Scan Capability:** Accepts a dotted PHP release such as `8.5.11` (Static Mode) OR queries a live web server's headers dynamically via `-Url` (Active Mode).
+- **JSON-Driven Configurations:** Loads the official patched baselines dynamically from an externalized `baselines.json` configuration database instead of hardcoding values.
+- **Visual Executive Reporting:** Generates both a raw Markdown assessment and a beautifully styled, interactive HTML dashboard report with responsive grids, status badges, and device-native emojis.
+- **Multi-Site Orchestration:** Audits multiple network endpoints sequentially using a CSV-driven bulk scanner pipeline (`Invoke-BulkPatchScan.ps1` via `targets.csv`).
 
 ## Safe scope
 
-This project performs version-based screening only. It does not scan hosts, send web requests, reproduce memory corruption, or execute exploit code.
+This project supports both version-based static screening and active dynamic header queries. To test web connection parsing safely without exposing real production infrastructure, a lightweight local mock server script (`Start-MockServer.ps1`) is provided to simulate different PHP version scenarios.
 
-## Run an exposed example
+---
 
+## 🔍 How to Run Scans
+
+### 1. Direct Static Version Check
+To test your script against a manually specified version input:
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\Test-PHP2ShellExposure.ps1 -PhpVersion 8.5.11 -ReportPath .\exposed-8.5.11.md
 ```
+*Expected status:* `EXPOSED`
 
-Expected status: `EXPOSED`
+---
 
-## Run a patched-baseline example
+### 2. Active Web Scanner Check
+To run an active scan against a live web server's headers and compile a styled HTML dashboard:
 
+**Step A: Start the Mock Web Server**
+In a separate PowerShell terminal window, launch your local test environment:
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\Test-PHP2ShellExposure.ps1 -PhpVersion 8.5.12 -ReportPath .\patched-8.5.12.md
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\Start-MockServer.ps1
+```
+*Expected output:* Mock server running on port 8000 mimicking a safe version (`PHP 8.5.15`) or vulnerable version (`PHP 8.4.26`).
+
+**Step B: Execute the Scan**
+In your main VS Code terminal, execute the scanner targeting the web server:
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\Test-PHP2ShellExposure.ps1 -Url "http://localhost:8000" -ReportPath .\audit-report.md
+```
+*Expected results:* The script connects, dynamically extracts the version from the headers, checks it against the JSON config, and outputs both `audit-report.md` and `audit-report.html` dashboards.
+
+---
+
+## 🚀 Advanced Enterprise Upgrades
+
+### 1. Dynamic Configuration (`baselines.json`)
+By separating security baselines from the application logic, security analysts can easily manage minimum safe thresholds across multiple branches without modifying script code:
+```json
+{
+    "8.2": "8.2.35",
+    "8.3": "8.3.36",
+    "8.4": "8.4.27",
+    "8.5": "8.5.12"
+}
 ```
 
-Expected status: `PATCHED BASELINE MET`
+### 2. CSV-Driven Bulk Auditor (`Invoke-BulkPatchScan.ps1`)
+Orchestrate mass-infrastructure scans seamlessly. Create a `targets.csv` inventory file mapping your environments:
+```csv
+SiteName,URL
+LocalMockServer,http://localhost:8000
+ExampleWebDomainPT,http://example.pt
+ExampleWebDomain,http://example.com
+```
+
+Then launch the automated bulk audit:
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\Invoke-BulkPatchScan.ps1
+```
+Your scanner will cycle through each site, gracefully catching network errors, and generating individual custom reports (e.g., `report-LocalMockServer.html`) for each target.
+
+---
 
 ## Covered baselines
 
